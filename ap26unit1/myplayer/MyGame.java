@@ -73,7 +73,9 @@ public class MyGame {
       draw++;
     }
     }
+    double winrate = (double)win / games * 100;
     System.out.println("My Player = " + win + "wins, " + lose + "loses, " + draw + "draws.");
+    System.out.println("WinRate = " + winrate + "%");
   }
 
   /** 1 プレイヤーあたりの持ち時間 (秒)。超過すると反則負け。*/
