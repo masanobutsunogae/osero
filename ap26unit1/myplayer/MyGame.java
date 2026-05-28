@@ -49,11 +49,31 @@ public class MyGame {
     //Player player1 = new myplayer.MyPlayer(BLACK);
     //Player player2 = new myplayer.RandomPlayer(WHITE);
     //先手
+
+    //ゲーム数の修正はここで！
+    int games = 100;
+    int win = 0;
+    int lose = 0;
+    int draw = 0;
+
+    for(int i = 0; i < games; i++){
     Player player1 = new myplayer.RandomPlayer(BLACK);
     Player player2 = new myplayer.MyPlayer(WHITE);
     Board board = new MyBoard();
     MyGame game = new MyGame(board, player1, player2);
     game.play();
+
+    Color winner = game.board.winner();
+
+    if(winner == BLACK){
+      win++;
+    }else if(winner == WHITE){
+      lose++;
+    }else{
+      draw++;
+    }
+    }
+    System.out.println("My Player = " + win + "wins, " + lose + "loses, " + draw + "draws.");
   }
 
   /** 1 プレイヤーあたりの持ち時間 (秒)。超過すると反則負け。*/
@@ -136,10 +156,10 @@ public class MyGame {
         break;
       }
 
-      System.out.println(board);
+      //System.out.println(board);
     }
 
-    printResult(board, moves);
+    //printResult(board, moves);
   }
 
   /**
