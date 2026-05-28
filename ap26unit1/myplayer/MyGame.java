@@ -51,23 +51,24 @@ public class MyGame {
     //先手
 
     //ゲーム数の修正はここで！
-    int games = 100;
+    int games = 50;
     int win = 0;
     int lose = 0;
     int draw = 0;
 
     for(int i = 0; i < games; i++){
-    Player player1 = new myplayer.MyPlayer(BLACK);
-    Player player2 = new myplayer.RandomPlayer(WHITE);
+    //先手、後手の調整はMyPlayerとRandomPlayerの中の色を変えることで行える
+    Player me = new MyPlayer(BLACK);
+    Player opponent = new RandomPlayer(WHITE);
     Board board = new MyBoard();
-    MyGame game = new MyGame(board, player1, player2);
+    MyGame game = new MyGame(board, me, opponent); //ここの順序も変えれば先手・後手変更可能
     game.play();
 
-    Color winner = game.board.winner();
+    Player winner = game.getWinner(game.board); //勝者を色ではなく、プレイヤーで受け取る
 
-    if(winner == BLACK){
+    if(winner == me){
       win++;
-    }else if(winner == WHITE){
+    }else if(winner == opponent){
       lose++;
     }else{
       draw++;
