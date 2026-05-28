@@ -57,8 +57,8 @@ public class MyGame {
     int draw = 0;
 
     for(int i = 0; i < games; i++){
-    Player player1 = new myplayer.RandomPlayer(BLACK);
-    Player player2 = new myplayer.MyPlayer(WHITE);
+    Player player1 = new myplayer.MyPlayer(BLACK);
+    Player player2 = new myplayer.RandomPlayer(WHITE);
     Board board = new MyBoard();
     MyGame game = new MyGame(board, player1, player2);
     game.play();
