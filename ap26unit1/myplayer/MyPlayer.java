@@ -7,80 +7,73 @@ import ap26.Board;
 import ap26.Color;
 import ap26.Move;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-//import java.util.Collections;
-
 
 /**
  * α-β 法で次の一手を決めるオセロプレイヤー。
  *
- * <p>unit0 の {@link AlphaBetaPlayer} と探索アルゴリズムの構造はまったく同じ
- * だが、ノード = オセロ盤面 ({@link Board})、ムーブ = オセロの着手 ({@link Move})
- * という具体に置き換わっている。本クラスは「unit0 で学んだ抽象例を
- * 実ゲームに適用する」具体例である。
+ * <p>unit0 の {@link AlphaBetaPlayer} と探索アルゴリズムの構造はまったく同じ だが、ノード = オセロ盤面 ({@link Board})、ムーブ =
+ * オセロの着手 ({@link Move}) という具体に置き換わっている。本クラスは「unit0 で学んだ抽象例を 実ゲームに適用する」具体例である。
  *
  * <h2>クラスの責務</h2>
+ *
  * <ul>
- *   <li>{@link ap26.Player} を継承し、{@link #think(Board)} で次の一手を返す</li>
- *   <li>内部で {@link MyEval} と α-β 探索を組み合わせる</li>
- *   <li>探索の最大深さ {@link #depthLimit} を持つ</li>
+ *   <li>{@link ap26.Player} を継承し、{@link #think(Board)} で次の一手を返す
+ *   <li>内部で {@link MyEval} と α-β 探索を組み合わせる
+ *   <li>探索の最大深さ {@link #depthLimit} を持つ
  * </ul>
  *
  * <h2>実装上のトリック</h2>
  *
  * <h3>1. 白番のときの盤面反転</h3>
- * {@link #think(Board)} 内で、自分が白番のときは {@link Board#flipped()} で
- * 盤面の色を反転して「常に黒視点で探索する」ようにしている。これにより
- * {@link #maxSearch} は常に黒の手を選ぶ、{@link #minSearch} は常に白の手を
- * 選ぶ、と固定でき、探索コードに色の分岐を入れずに済む。
- * <p>反転は対称性を利用したトリックで、評価関数 {@link MyEval#value(Board)}
- * が黒視点で書かれていれば、反転後の評価値もまた「反転視点での黒（=
+ *
+ * {@link #think(Board)} 内で、自分が白番のときは {@link Board#flipped()} で 盤面の色を反転して「常に黒視点で探索する」ようにしている。これにより
+ * {@link #maxSearch} は常に黒の手を選ぶ、{@link #minSearch} は常に白の手を 選ぶ、と固定でき、探索コードに色の分岐を入れずに済む。
+ *
+ * <p>反転は対称性を利用したトリックで、評価関数 {@link MyEval#value(Board)} が黒視点で書かれていれば、反転後の評価値もまた「反転視点での黒（=
  * 元の白）」の優劣を正しく表す。
  *
  * <h3>2. 最善手の記録 {@code if (depth == 0) this.move = move;}</h3>
- * α-β 探索は普通「評価値」だけを戻り値で返すが、ゲームプレイには
- * 「どの手が最善か」も必要である。本実装では <b>ルートノード (depth == 0)
- * でのみ</b>、α が更新されたタイミングで該当ムーブをフィールド
- * {@link #move} に保存している。
- * <p>戻り値ではなく副作用で持ち回るのは、探索本体のシグネチャを
- * unit0 と同じに保つための簡略化。本格的な実装では「評価値 + 最善手」
- * を構造体で返す方が綺麗。
+ *
+ * α-β 探索は普通「評価値」だけを戻り値で返すが、ゲームプレイには 「どの手が最善か」も必要である。本実装では <b>ルートノード (depth == 0) でのみ</b>、α
+ * が更新されたタイミングで該当ムーブをフィールド {@link #move} に保存している。
+ *
+ * <p>戻り値ではなく副作用で持ち回るのは、探索本体のシグネチャを unit0 と同じに保つための簡略化。本格的な実装では「評価値 + 最善手」 を構造体で返す方が綺麗。
  *
  * <h3>3. 同点時の手番揺らぎ {@link #order(List)}</h3>
- * α-β は決定的で、同じ評価値の手が複数あると常に同じ手が選ばれる。
- * すると「相手が同じ局面に来たら必ず同じ手」と読まれて単調になる
- * ため、{@link Collections#shuffle} で手順をランダム化している。
- * 本格的な実装では「最善手を優先的に探索する手順並び替え」を入れて
- * カットを最大化するが、本教材では学習しやすさを優先。
+ *
+ * α-β は決定的で、同じ評価値の手が複数あると常に同じ手が選ばれる。 すると「相手が同じ局面に来たら必ず同じ手」と読まれて単調になる ため、{@link Collections#shuffle}
+ * で手順をランダム化している。 本格的な実装では「最善手を優先的に探索する手順並び替え」を入れて カットを最大化するが、本教材では学習しやすさを優先。
  *
  * <h3>4. 全枝同点時のフォールバック {@code this.move = moves.get(0);}</h3>
- * 全子ノードの評価値が初期 α と一致した場合、α 更新が一度も起きず、
- * {@link #move} が {@code null} のままになる。これを防ぐため、ループ前に
+ *
+ * 全子ノードの評価値が初期 α と一致した場合、α 更新が一度も起きず、 {@link #move} が {@code null} のままになる。これを防ぐため、ループ前に
  * リストの先頭を仮の最善手として登録している。
  */
 public class MyPlayer extends ap26.Player {
 
-  /** デフォルトのプレイヤー名（リーグ戦で識別用）。*/
+  /** デフォルトのプレイヤー名（リーグ戦で識別用）。 */
   static final String MY_NAME = "MY24";
 
-  /** 評価関数。{@link MyEval} を参照。*/
+  /** 評価関数。{@link MyEval} を参照。 */
   MyEval eval;
 
-  /** 探索の最大深さ。深いほど強いが計算時間が指数的に増える。*/
+  /** 探索の最大深さ。深いほど強いが計算時間が指数的に増える。 */
   int depthLimit;
 
-  /** ルートで決定した最善手（戻り値ではなく副作用で持ち回る）。*/
+  /** ルートで決定した最善手（戻り値ではなく副作用で持ち回る）。 */
   Move move;
 
-  /** 探索用の内部盤面。相手の手番を逐次反映する。*/
+  /** 探索用の内部盤面。相手の手番を逐次反映する。 */
   MyBoard board;
 
-  /** デフォルトコンストラクタ。深さ 2 で構築。*/
+  /** デフォルトコンストラクタ。深さ 2 で構築。 */
   public MyPlayer(Color color) {
     this(MY_NAME, color, new MyEval(), 2);
   }
 
-  /** 全パラメータを明示するコンストラクタ。*/
+  /** 全パラメータを明示するコンストラクタ。 */
   public MyPlayer(String name, Color color, MyEval eval, int depthLimit) {
     super(name, color);
     this.eval = eval;
@@ -88,15 +81,12 @@ public class MyPlayer extends ap26.Player {
     this.board = new MyBoard();
   }
 
-  /** 名前と深さを指定するコンストラクタ（評価関数はデフォルト）。*/
+  /** 名前と深さを指定するコンストラクタ（評価関数はデフォルト）。 */
   public MyPlayer(String name, Color color, int depthLimit) {
     this(name, color, new MyEval(), depthLimit);
   }
 
-  /**
-   * ゲーム開始時に呼ばれる。リーグ戦システムから渡される {@link Board} を
-   * 内部の {@link MyBoard} に複製する。
-   */
+  /** ゲーム開始時に呼ばれる。リーグ戦システムから渡される {@link Board} を 内部の {@link MyBoard} に複製する。 */
   @Override
   public void setBoard(Board board) {
     for (int k = 0; k < ap26.Board.LENGTH; k++) {
@@ -104,7 +94,7 @@ public class MyPlayer extends ap26.Player {
     }
   }
 
-  /** 自分が黒番か。*/
+  /** 自分が黒番か。 */
   boolean isBlack() {
     return getColor() == BLACK;
   }
@@ -113,11 +103,12 @@ public class MyPlayer extends ap26.Player {
    * 次の一手を返す。ゲームシステムから手番が来るたびに呼ばれる。
    *
    * <p>処理手順:
+   *
    * <ol>
-   *   <li>相手の直前手 ({@code board.getMove()}) を内部盤面に反映</li>
-   *   <li>合法手が無ければパス</li>
-   *   <li>あれば α-β 探索で最善手 {@link #move} を決定</li>
-   *   <li>決定した手を内部盤面にも反映して返す</li>
+   *   <li>相手の直前手 ({@code board.getMove()}) を内部盤面に反映
+   *   <li>合法手が無ければパス
+   *   <li>あれば α-β 探索で最善手 {@link #move} を決定
+   *   <li>決定した手を内部盤面にも反映して返す
    * </ol>
    */
   @Override
@@ -146,9 +137,8 @@ public class MyPlayer extends ap26.Player {
   }
 
   /**
-   * α-β 探索の max 側。unit0 の {@link AlphaBetaPlayer#maxSearch} と
-   * ロジックは同じ。違いは「ルート (depth == 0) で最善手を {@link #move}
-   * に保存する」点だけ。
+   * α-β 探索の max 側。unit0 の {@link AlphaBetaPlayer#maxSearch} と ロジックは同じ。違いは「ルート (depth == 0) で最善手を
+   * {@link #move} に保存する」点だけ。
    */
   float maxSearch(Board currentBoard, float alpha, float beta, int depth) {
     if (isTerminal(currentBoard, depth)) {
@@ -188,8 +178,7 @@ public class MyPlayer extends ap26.Player {
   }
 
   /**
-   * α-β 探索の min 側。unit0 の {@link AlphaBetaPlayer#minSearch} と同じ。
-   * 探索は黒視点で進めるので、min 側は白（= 相手）の手を生成する。
+   * α-β 探索の min 側。unit0 の {@link AlphaBetaPlayer#minSearch} と同じ。 探索は黒視点で進めるので、min 側は白（= 相手）の手を生成する。
    */
   float minSearch(Board currentBoard, float alpha, float beta, int depth) {
     if (isTerminal(currentBoard, depth)) {
@@ -213,21 +202,21 @@ public class MyPlayer extends ap26.Player {
     return beta;
   }
 
-  /** 探索打ち切り判定。unit0 と同じ。*/
+  /** 探索打ち切り判定。unit0 と同じ。 */
   boolean isTerminal(Board currentBoard, int depth) {
     return currentBoard.isEnd() || depth > this.depthLimit;
   }
 
   /**
    * 探索する手順を並び替える。
-   * <p>本実装ではランダムシャッフルだけ。同じ評価値の手が複数あったとき、
-   * 毎回同じ手を選んで単調になるのを避ける。
-   * <p>本格的な実装では「過去の探索で良かった手を先に試す」など、
-   * α-β カットを最大化する並び替えを入れる。
+   *
+   * <p>本実装ではランダムシャッフルだけ。同じ評価値の手が複数あったとき、 毎回同じ手を選んで単調になるのを避ける。
+   *
+   * <p>本格的な実装では「過去の探索で良かった手を先に試す」など、 α-β カットを最大化する並び替えを入れる。
    */
   List<Move> order(List<Move> moves) {
     List<Move> shuffled = new ArrayList<>(moves);
-    //Collections.shuffle(shuffled);
+    Collections.shuffle(shuffled);
     return shuffled;
   }
 }
