@@ -8,11 +8,12 @@ import myplayer.*;
 
 public class work1a {
   public static void main(String args[]) {
-    for (int depth = 0; depth < 5; depth++) {
+    for (int depth = 2; depth < 3; depth++) {
       int win = 0, lose = 0, draw = 0;
-      for (int i = 0; i < 50; i++) {
+      int games = 200;
+      for (int i = 0; i < games; i++) {
         Player winner =
-            i < 25
+            i < games / 2
                 ? match(new MyPlayer("player" + i, BLACK, depth), new RandomPlayer(WHITE))
                 : match(new RandomPlayer(BLACK), new MyPlayer("player" + i, WHITE, depth));
 
@@ -20,7 +21,7 @@ public class work1a {
         else if (winner instanceof RandomPlayer) lose++;
         else draw++;
       }
-      double winrate = (double) win / 50 * 100;
+      double winrate = (double) win / games * 100;
       System.out.println("depth = " + depth + "\nwinrate = " + winrate);
     }
   }

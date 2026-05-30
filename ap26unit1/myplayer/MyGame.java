@@ -160,7 +160,7 @@ public class MyGame {
         break;
       }
 
-      System.out.println(board);
+      // System.out.println(board);
     }
 
     printResult(board, moves);
