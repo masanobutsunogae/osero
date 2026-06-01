@@ -153,8 +153,6 @@ public class MyPlayer extends ap26.Player {
     List<Move> moves = currentBoard.findLegalMoves(BLACK);
     moves = order(moves);
 
-    // フォールバック: 全枝が初期 α と同点だった場合に備えて
-    // 暫定の最善手を仮登録（後でループ内の更新が一度も起きないと困るため）
     if (depth == 0) {
       // 各合法手に対して並列で探索
       List<CompletableFuture<EvalResult>> futures =
