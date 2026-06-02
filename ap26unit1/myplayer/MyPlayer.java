@@ -9,6 +9,7 @@ import ap26.Move;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * α-β 法で次の一手を決めるオセロプレイヤー。
@@ -67,6 +68,9 @@ public class MyPlayer extends ap26.Player {
 
   /** 探索用の内部盤面。相手の手番を逐次反映する。 */
   MyBoard board;
+
+  // マルチスレッド化用に探索の結果を保持する型
+  record EvalResult(Move move, float score) {}
 
   /** デフォルトコンストラクタ。深さ 2 で構築。 */
   public MyPlayer(Color color) {
@@ -149,32 +153,60 @@ public class MyPlayer extends ap26.Player {
     List<Move> moves = currentBoard.findLegalMoves(BLACK);
     moves = order(moves);
 
-    // フォールバック: 全枝が初期 α と同点だった場合に備えて
-    // 暫定の最善手を仮登録（後でループ内の更新が一度も起きないと困るため）
     if (depth == 0) {
-      this.move = moves.get(0);
-    }
+      // 各合法手に対して並列で探索
+      List<CompletableFuture<EvalResult>> futures =
+          moves.stream()
+              .map(
+                  nextMove ->
+                      CompletableFuture.supplyAsync(
+                          () -> {
+                            Board nextBoard = currentBoard.clone().placed(nextMove);
+                            float childValue =
+                                minSearch(
+                                    nextBoard,
+                                    Float.NEGATIVE_INFINITY,
+                                    Float.POSITIVE_INFINITY,
+                                    depth + 1);
+                            return new EvalResult(nextMove, childValue);
+                          }))
+              .toList();
 
-    // ループ変数は this.move フィールドと混同しないよう nextMove と命名
-    for (Move nextMove : moves) {
-      Board nextBoard = currentBoard.placed(nextMove);
-      float childValue = minSearch(nextBoard, alpha, beta, depth + 1);
+      // 全部が終わるのを待つ
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-      if (childValue > alpha) {
-        alpha = childValue;
-        if (depth == 0) {
-          // ルートでの最善手を記録（戻り値ではなく副作用で）
-          this.move = nextMove;
+      // 結果からscoreが最大のものを見つける
+      EvalResult bestResult =
+          futures.stream()
+              .map(CompletableFuture::join)
+              .max((r1, r2) -> Float.compare(r1.score(), r2.score()))
+              .orElseThrow();
+
+      this.move = bestResult.move();
+      return bestResult.score();
+    } else {
+
+      // ループ変数は this.move フィールドと混同しないよう nextMove と命名
+      for (Move nextMove : moves) {
+        Board nextBoard = currentBoard.placed(nextMove);
+        float childValue = minSearch(nextBoard, alpha, beta, depth + 1);
+
+        if (childValue > alpha) {
+          alpha = childValue;
+          if (depth == 0) {
+            // ルートでの最善手を記録（戻り値ではなく副作用で）
+            this.move = nextMove;
+          }
+        }
+
+        if (alpha >= beta) {
+          // β カット: 祖先の min はこれ以上の値を許さない
+          break;
         }
       }
 
-      if (alpha >= beta) {
-        // β カット: 祖先の min はこれ以上の値を許さない
-        break;
-      }
+      return alpha;
     }
-
-    return alpha;
   }
 
   /**
