@@ -8,13 +8,21 @@ import myplayer.*;
 
 public class calNps {
   public static void main(String args[]) {
-    MyPlayer mp = new MyPlayer("myplayer", BLACK, 5);
-    match(mp, new RandomPlayer(WHITE));
+    int depth = 2;
+    while (true) {
+      MyPlayer mp = new MyPlayer("myplayer", BLACK, depth);
+      match(mp, new RandomPlayer(WHITE));
 
-    long nodeCount = mp.getNodeCount();
-    double seconds = mp.getSeconds();
-    double nps = nodeCount / seconds;
-    System.out.printf("count: %d, second: %f, nps: %f\n", nodeCount, seconds, nps);
+      long nodeCount = mp.getNodeCount();
+      double seconds = mp.getSeconds();
+      double nps = nodeCount / seconds;
+      System.out.printf(
+          "depth: %d, count: %d, second: %f, nps: %f\n", depth, nodeCount, seconds, nps);
+
+      if (seconds > 60) break;
+
+      depth++;
+    }
   }
 
   static Player match(Player player1, Player player2) {
