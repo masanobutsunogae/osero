@@ -2,33 +2,38 @@ package myplayer;
 
 import static ap26.Color.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import ap26.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MyBoard implements Board, Cloneable {
-  Color board[];
+  private long blackBoard;
+  private long whiteBoard;
+  private long blockBoard;
   Move move = Move.ofPass(NONE);
 
+  private static final long LEFT_EDGE = 0x041041041L;
+  private static final long RIGHT_EDGE = 0x820820820L;
+  private static final long SAFE_LEFT = ~LEFT_EDGE;
+  private static final long SAFE_RIGHT = ~RIGHT_EDGE;
+  private static final long ALL_MASK = (1L << LENGTH) - 1L;
+
   public MyBoard() {
-    this.board = Stream.generate(() -> NONE).limit(LENGTH).toArray(Color[]::new);
+    blackBoard = 0;
+    whiteBoard = 0;
+    blockBoard = 0;
     init();
   }
 
-  MyBoard(Color board[], Move move) {
-    this.board = Arrays.copyOf(board, board.length);
+  MyBoard(long blackBoard, long whiteBoard, long blockBoard, Move move) {
+    this.blackBoard = blackBoard;
+    this.whiteBoard = whiteBoard;
+    this.blockBoard = blockBoard;
     this.move = move;
   }
 
   public MyBoard clone() {
-    return new MyBoard(this.board, this.move);
+    return new MyBoard(this.blackBoard, this.whiteBoard, this.blockBoard, this.move);
   }
 
   void init() {
@@ -38,21 +43,38 @@ public class MyBoard implements Board, Cloneable {
     set(Move.parseIndex("c4"), WHITE);
   }
 
-  public Color get(int k) { return this.board[k]; }
-  public Move getMove() { return this.move; }
+  public Color get(int k) {
+    if (((blackBoard >> k) & 1) == 1) return BLACK;
+    else if (((whiteBoard >> k) & 1) == 1) return WHITE;
+    else if (((blockBoard >> k) & 1) == 1) return BLOCK;
+    else return NONE;
+  }
+
+  public Move getMove() {
+    return this.move;
+  }
 
   public Color getTurn() {
     return this.move.isNone() ? BLACK : this.move.getColor().flipped();
   }
 
   public void set(int k, Color color) {
-    this.board[k] = color;
+    long mask = 1L << k;
+    blackBoard &= ~mask;
+    whiteBoard &= ~mask;
+    blockBoard &= ~mask;
+
+    if (color == BLACK) blackBoard |= mask;
+    else if (color == WHITE) whiteBoard |= mask;
+    else if (color == BLOCK) blockBoard |= mask;
   }
 
   public boolean equals(Object otherObj) {
     if (otherObj instanceof MyBoard) {
       var other = (MyBoard) otherObj;
-      return Arrays.equals(this.board, other.board);
+      return this.blackBoard == other.blackBoard
+          && this.whiteBoard == other.whiteBoard
+          && this.blockBoard == other.blockBoard;
     }
     return false;
   }
@@ -62,7 +84,10 @@ public class MyBoard implements Board, Cloneable {
   }
 
   public int count(Color color) {
-    return countAll().getOrDefault(color, 0L).intValue();
+    if (color == BLACK) return Long.bitCount(blackBoard);
+    else if (color == WHITE) return Long.bitCount(whiteBoard);
+    else if (color == BLOCK) return Long.bitCount(blockBoard);
+    else return Long.bitCount(~(blackBoard | whiteBoard | blockBoard) & ALL_MASK);
   }
 
   public boolean isEnd() {
@@ -73,36 +98,33 @@ public class MyBoard implements Board, Cloneable {
 
   public Color winner() {
     var v = score();
-    if (isEnd() == false || v == 0 ) return NONE;
+    if (isEnd() == false || v == 0) return NONE;
     return v > 0 ? BLACK : WHITE;
   }
 
   public void foul(Color color) {
     var winner = color.flipped();
-    IntStream.range(0, LENGTH).forEach(k -> this.board[k] = winner);
+    blackBoard = 0L;
+    whiteBoard = 0L;
+    blockBoard = 0L;
+
+    if (winner == BLACK) blackBoard = ALL_MASK;
+    else whiteBoard = ALL_MASK;
   }
 
   public int score() {
-    var cs = countAll();
-    var bs = cs.getOrDefault(BLACK, 0L);
-    var ws = cs.getOrDefault(WHITE, 0L);
+    var bs = Long.bitCount(blackBoard);
+    var ws = Long.bitCount(whiteBoard);
     var ns = LENGTH - bs - ws;
     int score = (int) (bs - ws);
 
-    if (bs == 0 || ws == 0)
-        score += Integer.signum(score) * ns;
+    if (bs == 0 || ws == 0) score += Integer.signum(score) * ns;
 
     return score;
   }
 
-  Map<Color, Long> countAll() {
-    return Arrays.stream(this.board).collect(
-        Collectors.groupingBy(Function.identity(), Collectors.counting()));
-  }
-
   public List<Move> findLegalMoves(Color color) {
-    return findLegalIndexes(color).stream()
-        .map(k -> new Move(k, color)).toList();
+    return findLegalIndexes(color).stream().map(k -> new Move(k, color)).toList();
   }
 
   List<Integer> findLegalIndexes(Color color) {
@@ -112,62 +134,109 @@ public class MyBoard implements Board, Cloneable {
   }
 
   List<Integer> findNoPassLegalIndexes(Color color) {
-    var moves = new ArrayList<Integer>();
-    for (int k = 0; k < LENGTH; k++) {
-      var c = this.board[k];
-      if (c != NONE) continue;
-      for (var line : lines(k)) {
-        var outflanking = outflanked(line, color);
-        if (outflanking.size() > 0) moves.add(k);
-      }
+    long p = (color == BLACK) ? blackBoard : whiteBoard;
+    long o = (color == BLACK) ? whiteBoard : blackBoard;
+    long none = ~(this.blackBoard | this.whiteBoard | this.blockBoard) & ALL_MASK;
+
+    long legalMoves = 0L;
+
+    int[] shifts = {1, 5, 6, 7};
+
+    long[] posMasks = {SAFE_RIGHT, SAFE_LEFT, ~0L, SAFE_RIGHT};
+    long[] negMasks = {SAFE_LEFT, SAFE_RIGHT, ~0L, SAFE_LEFT};
+
+    for (int i = 0; i < 4; i++) {
+      int s = shifts[i];
+      long pm = posMasks[i];
+      long nm = negMasks[i];
+
+      long matched1 = ((p & pm) << s) & o;
+      matched1 |= ((matched1 & pm) << s) & o;
+      matched1 |= ((matched1 & pm) << s) & o;
+      matched1 |= ((matched1 & pm) << s) & o;
+      legalMoves |= ((matched1 & pm) << s) & none;
+
+      long matched2 = ((p & nm) >>> s) & o;
+      matched2 |= ((matched2 & nm) >>> s) & o;
+      matched2 |= ((matched2 & nm) >>> s) & o;
+      matched2 |= ((matched2 & nm) >>> s) & o;
+      legalMoves |= ((matched2 & nm) >>> s) & none;
     }
+
+    List<Integer> moves = new ArrayList<>();
+    while (legalMoves != 0L) {
+      int k = Long.numberOfTrailingZeros(legalMoves);
+      moves.add(k);
+
+      legalMoves &= (legalMoves - 1L);
+    }
+
     return moves;
-  }
-
-  List<List<Integer>> lines(int k) {
-    var lines = new ArrayList<List<Integer>>();
-    for (int dir = 0; dir < 8; dir++) {
-      var line = Move.line(k, dir);
-      lines.add(line);
-    }
-    return lines;
-  }
-
-  List<Move> outflanked(List<Integer> line, Color color) {
-    if (line.size() <= 1) return new ArrayList<Move>();
-    var flippables = new ArrayList<Move>();
-    for (int k: line) {
-      var c = get(k);
-      if (c == NONE || c == BLOCK) break;
-      if (c == color) return flippables;
-      flippables.add(new Move(k, color));
-    }
-    return new ArrayList<Move>();
   }
 
   public MyBoard placed(Move move) {
     var b = clone();
     b.move = move;
 
-    if (move.isPass() | move.isNone())
-      return b;
+    if (move.isPass() | move.isNone()) return b;
 
     var k = move.getIndex();
     var color = move.getColor();
-    var lines = b.lines(k);
-    for (var line: lines) {
-      for (var p: outflanked(line, color)) {
-        b.board[p.getIndex()] = color;
+
+    long newMove = 1L << k;
+    long p = (color == BLACK) ? b.blackBoard : b.whiteBoard;
+    long o = (color == BLACK) ? b.whiteBoard : b.blackBoard;
+
+    long flipPattern = 0L;
+
+    int[] shifts = {1, 5, 6, 7};
+    long[] posMasks = {SAFE_RIGHT, SAFE_LEFT, ~0L, SAFE_RIGHT};
+    long[] negMasks = {SAFE_LEFT, SAFE_RIGHT, ~0L, SAFE_LEFT};
+
+    for (int i = 0; i < 4; i++) {
+      int s = shifts[i];
+      long pm = posMasks[i];
+      long nm = negMasks[i];
+
+      long matched1 = ((newMove & pm) << s) & o;
+      matched1 |= ((matched1 & pm) << s) & o;
+      matched1 |= ((matched1 & pm) << s) & o;
+      matched1 |= ((matched1 & pm) << s) & o;
+
+      if (((matched1 & pm) << s & p) != 0L) {
+        flipPattern |= matched1;
+      }
+
+      long matched2 = ((newMove & nm) >>> s) & o;
+      matched2 |= ((matched2 & nm) >>> s) & o;
+      matched2 |= ((matched2 & nm) >>> s) & o;
+      matched2 |= ((matched2 & nm) >>> s) & o;
+
+      if (((matched2 & nm) >>> s & p) != 0L) {
+        flipPattern |= matched2;
       }
     }
-    b.set(k, color);
+
+    if (color == BLACK) {
+      b.blackBoard |= flipPattern;
+      b.blackBoard |= newMove;
+      b.whiteBoard &= ~flipPattern;
+    } else {
+      b.whiteBoard |= flipPattern;
+      b.whiteBoard |= newMove;
+      b.blackBoard &= ~flipPattern;
+    }
 
     return b;
   }
 
   public MyBoard flipped() {
     var b = clone();
-    IntStream.range(0, LENGTH).forEach(k -> b.board[k] = b.board[k].flipped());
+
+    long tmp = b.blackBoard;
+    b.blackBoard = b.whiteBoard;
+    b.whiteBoard = tmp;
+
     b.move = this.move.flipped();
     return b;
   }
