@@ -72,9 +72,13 @@ public class MyPlayer extends ap26.Player {
   // マルチスレッド化用に探索の結果を保持する型
   record EvalResult(Move move, float score) {}
 
+  // nps計算用
+  long nodeCount;
+  double seconds;
+
   /** デフォルトコンストラクタ。深さ 2 で構築。 */
   public MyPlayer(Color color) {
-    this(MY_NAME, color, new MyEval(), 2);
+    this(MY_NAME, color, new MyEval(), 6);
   }
 
   /** 全パラメータを明示するコンストラクタ。 */
@@ -128,8 +132,14 @@ public class MyPlayer extends ap26.Player {
       MyBoard searchBoard = isBlack() ? this.board.clone() : this.board.flipped();
       this.move = null;
 
+      nodeCount = 0;
+      long startTime = System.nanoTime();
+
       // 副作用で this.move に最善手が記録される
       maxSearch(searchBoard, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, 0);
+
+      long endTime = System.nanoTime();
+      seconds = (endTime - startTime) / 1000000000.0;
 
       // 反転して探索したので、最善手の色を自分の色に戻す
       this.move = this.move.colored(getColor());
@@ -145,6 +155,8 @@ public class MyPlayer extends ap26.Player {
    * {@link #move} に保存する」点だけ。
    */
   float maxSearch(Board currentBoard, float alpha, float beta, int depth) {
+    nodeCount++;
+
     if (isTerminal(currentBoard, depth)) {
       return this.eval.value(currentBoard);
     }
@@ -213,6 +225,8 @@ public class MyPlayer extends ap26.Player {
    * α-β 探索の min 側。unit0 の {@link AlphaBetaPlayer#minSearch} と同じ。 探索は黒視点で進めるので、min 側は白（= 相手）の手を生成する。
    */
   float minSearch(Board currentBoard, float alpha, float beta, int depth) {
+    nodeCount++;
+
     if (isTerminal(currentBoard, depth)) {
       return this.eval.value(currentBoard);
     }
@@ -250,5 +264,13 @@ public class MyPlayer extends ap26.Player {
     List<Move> shuffled = new ArrayList<>(moves);
     Collections.shuffle(shuffled);
     return shuffled;
+  }
+
+  public long getNodeCount() {
+    return nodeCount;
+  }
+
+  public double getSeconds() {
+    return seconds;
   }
 }
