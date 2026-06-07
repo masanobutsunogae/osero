@@ -18,6 +18,11 @@ public class MyBoard implements Board, Cloneable {
   private static final long SAFE_RIGHT = ~RIGHT_EDGE;
   private static final long ALL_MASK = (1L << LENGTH) - 1L;
 
+  // 探索用の配列をクラスレベルの定数に引き上げ (毎回生成するコストを削減)
+  private static final int[] SHIFTS = {1, 5, 6, 7};
+  private static final long[] POS_MASKS = {SAFE_RIGHT, SAFE_LEFT, ~0L, SAFE_RIGHT};
+  private static final long[] NEG_MASKS = {SAFE_LEFT, SAFE_RIGHT, ~0L, SAFE_LEFT};
+
   public MyBoard() {
     blackBoard = 0;
     whiteBoard = 0;
@@ -133,6 +138,24 @@ public class MyBoard implements Board, Cloneable {
     return moves;
   }
 
+  // 相手の石が連続している部分を計算するヘルパーメソッド (正方向)
+  private long getMatchedPos(long start, long opponent, int shift, long mask) {
+    long matched = ((start & mask) << shift) & opponent;
+    matched |= ((matched & mask) << shift) & opponent;
+    matched |= ((matched & mask) << shift) & opponent;
+    matched |= ((matched & mask) << shift) & opponent;
+    return matched;
+  }
+
+  // 相手の石が連続している部分を計算するヘルパーメソッド (負方向)
+  private long getMatchedNeg(long start, long opponent, int shift, long mask) {
+    long matched = ((start & mask) >>> shift) & opponent;
+    matched |= ((matched & mask) >>> shift) & opponent;
+    matched |= ((matched & mask) >>> shift) & opponent;
+    matched |= ((matched & mask) >>> shift) & opponent;
+    return matched;
+  }
+
   List<Integer> findNoPassLegalIndexes(Color color) {
     long p = (color == BLACK) ? blackBoard : whiteBoard;
     long o = (color == BLACK) ? whiteBoard : blackBoard;
@@ -140,26 +163,15 @@ public class MyBoard implements Board, Cloneable {
 
     long legalMoves = 0L;
 
-    int[] shifts = {1, 5, 6, 7};
-
-    long[] posMasks = {SAFE_RIGHT, SAFE_LEFT, ~0L, SAFE_RIGHT};
-    long[] negMasks = {SAFE_LEFT, SAFE_RIGHT, ~0L, SAFE_LEFT};
-
     for (int i = 0; i < 4; i++) {
-      int s = shifts[i];
-      long pm = posMasks[i];
-      long nm = negMasks[i];
+      int s = SHIFTS[i];
+      long pm = POS_MASKS[i];
+      long nm = NEG_MASKS[i];
 
-      long matched1 = ((p & pm) << s) & o;
-      matched1 |= ((matched1 & pm) << s) & o;
-      matched1 |= ((matched1 & pm) << s) & o;
-      matched1 |= ((matched1 & pm) << s) & o;
+      long matched1 = getMatchedPos(p, o, s, pm);
       legalMoves |= ((matched1 & pm) << s) & none;
 
-      long matched2 = ((p & nm) >>> s) & o;
-      matched2 |= ((matched2 & nm) >>> s) & o;
-      matched2 |= ((matched2 & nm) >>> s) & o;
-      matched2 |= ((matched2 & nm) >>> s) & o;
+      long matched2 = getMatchedNeg(p, o, s, nm);
       legalMoves |= ((matched2 & nm) >>> s) & none;
     }
 
@@ -167,8 +179,7 @@ public class MyBoard implements Board, Cloneable {
     while (legalMoves != 0L) {
       int k = Long.numberOfTrailingZeros(legalMoves);
       moves.add(k);
-
-      legalMoves &= (legalMoves - 1L);
+      legalMoves &= (legalMoves - 1L); // 最下位の1をクリア
     }
 
     return moves;
@@ -178,7 +189,7 @@ public class MyBoard implements Board, Cloneable {
     var b = clone();
     b.move = move;
 
-    if (move.isPass() | move.isNone()) return b;
+    if (move.isPass() || move.isNone()) return b;
 
     var k = move.getIndex();
     var color = move.getColor();
@@ -189,29 +200,17 @@ public class MyBoard implements Board, Cloneable {
 
     long flipPattern = 0L;
 
-    int[] shifts = {1, 5, 6, 7};
-    long[] posMasks = {SAFE_RIGHT, SAFE_LEFT, ~0L, SAFE_RIGHT};
-    long[] negMasks = {SAFE_LEFT, SAFE_RIGHT, ~0L, SAFE_LEFT};
-
     for (int i = 0; i < 4; i++) {
-      int s = shifts[i];
-      long pm = posMasks[i];
-      long nm = negMasks[i];
+      int s = SHIFTS[i];
+      long pm = POS_MASKS[i];
+      long nm = NEG_MASKS[i];
 
-      long matched1 = ((newMove & pm) << s) & o;
-      matched1 |= ((matched1 & pm) << s) & o;
-      matched1 |= ((matched1 & pm) << s) & o;
-      matched1 |= ((matched1 & pm) << s) & o;
-
+      long matched1 = getMatchedPos(newMove, o, s, pm);
       if (((matched1 & pm) << s & p) != 0L) {
         flipPattern |= matched1;
       }
 
-      long matched2 = ((newMove & nm) >>> s) & o;
-      matched2 |= ((matched2 & nm) >>> s) & o;
-      matched2 |= ((matched2 & nm) >>> s) & o;
-      matched2 |= ((matched2 & nm) >>> s) & o;
-
+      long matched2 = getMatchedNeg(newMove, o, s, nm);
       if (((matched2 & nm) >>> s & p) != 0L) {
         flipPattern |= matched2;
       }
