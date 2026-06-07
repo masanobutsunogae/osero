@@ -1,4 +1,4 @@
-package myplayer;
+package p26x03;
 
 import static ap26.Color.*;
 
@@ -6,7 +6,7 @@ import ap26.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MyBoard implements Board, Cloneable {
+public class OurBoard implements Board, Cloneable {
   private long blackBoard;
   private long whiteBoard;
   private long blockBoard;
@@ -22,22 +22,22 @@ public class MyBoard implements Board, Cloneable {
   private static final long[] POS_MASKS = {SAFE_RIGHT, SAFE_LEFT, ~0L, SAFE_RIGHT};
   private static final long[] NEG_MASKS = {SAFE_LEFT, SAFE_RIGHT, ~0L, SAFE_LEFT};
 
-  public MyBoard() {
+  public OurBoard() {
     blackBoard = 0;
     whiteBoard = 0;
     blockBoard = 0;
     init();
   }
 
-  MyBoard(long blackBoard, long whiteBoard, long blockBoard, Move move) {
+  OurBoard(long blackBoard, long whiteBoard, long blockBoard, Move move) {
     this.blackBoard = blackBoard;
     this.whiteBoard = whiteBoard;
     this.blockBoard = blockBoard;
     this.move = move;
   }
 
-  public MyBoard clone() {
-    return new MyBoard(this.blackBoard, this.whiteBoard, this.blockBoard, this.move);
+  public OurBoard clone() {
+    return new OurBoard(this.blackBoard, this.whiteBoard, this.blockBoard, this.move);
   }
 
   void init() {
@@ -74,8 +74,8 @@ public class MyBoard implements Board, Cloneable {
   }
 
   public boolean equals(Object otherObj) {
-    if (otherObj instanceof MyBoard) {
-      var other = (MyBoard) otherObj;
+    if (otherObj instanceof OurBoard) {
+      var other = (OurBoard) otherObj;
       return this.blackBoard == other.blackBoard
           && this.whiteBoard == other.whiteBoard
           && this.blockBoard == other.blockBoard;
@@ -84,7 +84,7 @@ public class MyBoard implements Board, Cloneable {
   }
 
   public String toString() {
-    return MyBoardFormatter.format(this);
+    return OurBoardFormatter.format(this);
   }
 
   public int count(Color color) {
@@ -182,7 +182,7 @@ public class MyBoard implements Board, Cloneable {
     return moves;
   }
 
-  public MyBoard placed(Move move) {
+  public OurBoard placed(Move move) {
     var b = clone();
     b.move = move;
 
@@ -226,7 +226,7 @@ public class MyBoard implements Board, Cloneable {
     return b;
   }
 
-  public MyBoard flipped() {
+  public OurBoard flipped() {
     var b = clone();
 
     long tmp = b.blackBoard;

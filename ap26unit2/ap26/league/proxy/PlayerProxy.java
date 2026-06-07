@@ -75,40 +75,44 @@ public class PlayerProxy extends Player implements AutoCloseable {
         try {
             logger.info("Initializing player: " + playerId);
             
-            // 1. ポートプールからサーバポート借用
-            assignedPort = PortManager.borrowPort();
-            logger.info("Borrowed server port " + assignedPort + " from pool for player: " + playerId);
-            
-            // 2. ServerSocket開始（SO_REUSEADDR設定）
-            serverSocket = new ServerSocket();
-            serverSocket.setReuseAddress(true); // 異常終了時の即座ポート再利用
-            serverSocket.setSoTimeout(0); // accept()無限タイムアウト（プロセス起動待ち）
-            serverSocket.bind(new InetSocketAddress(assignedPort));
-            logger.info("ServerSocket listening on port " + assignedPort + " (SO_REUSEADDR=true)");
-            
-            // 3. PlayerMainプロセス起動（ポート番号を引数で渡す）
-            startPlayerProcess();
-            
-            // 4. PlayerMainからの接続待機（無限タイムアウト）
-            logger.info("Waiting for PlayerMain client connection on port " + assignedPort);
-            clientSocket = serverSocket.accept();
-            logger.info("PlayerMain connected from " + clientSocket.getRemoteSocketAddress());
-            
-            // 5. Socket設定（SO_LINGER、初期タイムアウト）
-            int clientTimeoutMs = SocketConfig.calculateClientTimeout(timeoutMs);
-            clientSocket.setSoTimeout(clientTimeoutMs);
-            
-            int lingerTimeSeconds = SocketConfig.calculateLingerTimeout(timeoutMs);
-            clientSocket.setSoLinger(true, lingerTimeSeconds);
-            logger.info("Socket configured: timeout=" + clientTimeoutMs + "ms, SO_LINGER=" + lingerTimeSeconds + "s");
-            
-            // 6. 通信ストリーム確立 (JSON line-delimited over UTF-8、PROTOCOL.md 参照)
-            out = new PrintWriter(
-                new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8),
-                true);  // autoFlush=true (println の度に flush)
-            in = new BufferedReader(
-                new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
-            logger.info("Communication streams established for player: " + playerId);
+            if (!initialized) {
+                // 1. ポートプールからサーバポート借用
+                assignedPort = PortManager.borrowPort();
+                logger.info("Borrowed server port " + assignedPort + " from pool for player: " + playerId);
+                
+                // 2. ServerSocket開始（SO_REUSEADDR設定）
+                serverSocket = new ServerSocket();
+                serverSocket.setReuseAddress(true); // 異常終了時の即座ポート再利用
+                serverSocket.setSoTimeout(0); // accept()無限タイムアウト（プロセス起動待ち）
+                serverSocket.bind(new InetSocketAddress(assignedPort));
+                logger.info("ServerSocket listening on port " + assignedPort + " (SO_REUSEADDR=true)");
+                
+                // 3. PlayerMainプロセス起動（ポート番号を引数で渡す）
+                startPlayerProcess();
+                
+                // 4. PlayerMainからの接続待機（無限タイムアウト）
+                logger.info("Waiting for PlayerMain client connection on port " + assignedPort);
+                clientSocket = serverSocket.accept();
+                logger.info("PlayerMain connected from " + clientSocket.getRemoteSocketAddress());
+                
+                // 5. Socket設定（SO_LINGER、初期タイムアウト）
+                int clientTimeoutMs = SocketConfig.calculateClientTimeout(timeoutMs);
+                clientSocket.setSoTimeout(clientTimeoutMs);
+                
+                int lingerTimeSeconds = SocketConfig.calculateLingerTimeout(timeoutMs);
+                clientSocket.setSoLinger(true, lingerTimeSeconds);
+                logger.info("Socket configured: timeout=" + clientTimeoutMs + "ms, SO_LINGER=" + lingerTimeSeconds + "s");
+                
+                // 6. 通信ストリーム確立 (JSON line-delimited over UTF-8、PROTOCOL.md 参照)
+                out = new PrintWriter(
+                    new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8),
+                    true);  // autoFlush=true (println の度に flush)
+                in = new BufferedReader(
+                    new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
+                logger.info("Communication streams established for player: " + playerId);
+                
+                initialized = true;
+            }
             
             // 7. 初期化要求送信
             logger.info("Sending init request to player: " + playerId);

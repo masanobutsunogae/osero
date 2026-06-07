@@ -129,14 +129,7 @@ public class ProxyGame extends Game {
             playWithProxies();
 
         } finally {
-            // 直接プロセス解放（簡素化）
-            if (processManager != null && blackPlayerId != -1 && whitePlayerId != -1) {
-                processManager.releasePlayer(blackPlayerId);
-                processManager.releasePlayer(whitePlayerId);
-                logger.debug("Released players: " + blackPlayerId + ", " + whitePlayerId);
-            }
-            
-            // Cleanup proxies
+            // Cleanup proxies and release
             terminateProxies();
         }
     }
@@ -251,12 +244,16 @@ public class ProxyGame extends Game {
     }
 
     private void terminateProxies() {
-        if (proxies != null && processManager != null) {
+        if (processManager != null && blackPlayerId != -1 && whitePlayerId != -1) {
             logger.info("Releasing proxies to ProcessManager for reuse");
 
             // タイムアウト判定：実際にタイムアウト手が指されたかチェック
-            boolean blackTimeout = moves.stream().anyMatch(move -> move.isTimeout() && move.getColor() == BLACK);
-            boolean whiteTimeout = moves.stream().anyMatch(move -> move.isTimeout() && move.getColor() == WHITE);
+            boolean blackTimeout = false;
+            boolean whiteTimeout = false;
+            if (moves != null) {
+                blackTimeout = moves.stream().anyMatch(move -> move.isTimeout() && move.getColor() == BLACK);
+                whiteTimeout = moves.stream().anyMatch(move -> move.isTimeout() && move.getColor() == WHITE);
+            }
 
             // ゲーム結果を作成（タイムアウトなしの場合は正常完了として通知）
             GameResult blackResult = new GameResult(blackTimeout, blackTimeout ? 0 : lastThinkTime, getBlackPlayer(),
