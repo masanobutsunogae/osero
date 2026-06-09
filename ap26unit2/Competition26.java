@@ -64,7 +64,7 @@ public class Competition26 {
             // new ap26.league.RandomPlayer(color),
 
             // 自チームの実装を追加 (例):
-            new p26x03.OurPlayer(color), new p26x04.OurPlayer(color),
+            new p26x03.OurPlayer(color), new p26x04.OurPlayer(color), new p26x05.OurPlayer(color),
           };
         };
 
