@@ -1,4 +1,4 @@
-package p26x03;
+package p26x04;
 
 import static ap26.Board.LENGTH;
 import static ap26.Board.SIZE;
@@ -36,9 +36,23 @@ public class MyEval {
       return 1_000_000 * board.score();
     }
 
-    return (float) IntStream.range(0, LENGTH)
+    float position = (float) IntStream.range(0, LENGTH)
         .mapToDouble(k -> cellScore(board, k))
         .sum();
+
+    int blackLegal = board.findLegalMoves(ap26.Color.BLACK).size();
+    int whiteLegal = board.findLegalMoves(ap26.Color.WHITE).size();
+
+    int blackCount = board.count(ap26.Color.BLACK);
+    int whiteCount = board.count(ap26.Color.WHITE);
+
+    float w1 =  1.0f;
+    float w2 =  5.0f;
+    float w3 = -5.0f;
+    float w4 =  0.3f;
+    float w5 = -0.3f;
+
+    return (w1 * position + w2 * blackLegal + w3 * whiteLegal + w4 * blackCount + w5 * whiteCount);
   }
 
   /** 1 マス分の評価値。黒石なら +M[r][c]、白石なら -M[r][c]、空マスは 0。*/

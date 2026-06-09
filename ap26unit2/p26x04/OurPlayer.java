@@ -1,4 +1,4 @@
-package p26x03;
+package p26x04;
 
 import static ap26.Color.BLACK;
 import static ap26.Color.WHITE;
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OurPlayer extends ap26.Player {
 
   /** プレイヤー名（リーグ戦で識別用、ASCII 4文字）。 */
-  static final String MY_NAME = "ODEV";
+  static final String MY_NAME = "NWEV";
 
   /** 評価関数。 */
   MyEval eval;
@@ -38,6 +38,7 @@ public class OurPlayer extends ap26.Player {
   record EvalResult(Move move, float score) {}
 
   // nps計算用
+  static final boolean ENABLE_NPS_COUNT = false;
   AtomicLong nodeCount = new AtomicLong();
   double seconds;
 
@@ -114,7 +115,7 @@ public class OurPlayer extends ap26.Player {
 
   /** α-β 探索の max 側。ルート (depth == 0) では並列探索を行う。 */
   float maxSearch(Board currentBoard, float alpha, float beta, int depth) {
-    nodeCount.incrementAndGet();
+    if (ENABLE_NPS_COUNT) nodeCount.incrementAndGet();
 
     if (isTerminal(currentBoard, depth)) {
       return this.eval.value(currentBoard);
@@ -180,7 +181,7 @@ public class OurPlayer extends ap26.Player {
 
   /** α-β 探索の min 側。白（= 相手）の手を生成する。 */
   float minSearch(Board currentBoard, float alpha, float beta, int depth) {
-    nodeCount.incrementAndGet();
+    if (ENABLE_NPS_COUNT) nodeCount.incrementAndGet();
 
     if (isTerminal(currentBoard, depth)) {
       return this.eval.value(currentBoard);

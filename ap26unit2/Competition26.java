@@ -56,15 +56,15 @@ public class Competition26 {
         (Color color) -> {
           return new Player[] {
             // サンプル学生プレイヤー
-            new p26x00.OurPlayer(color),
+            //            new p26x00.OurPlayer(color),
 
             // ベースライン
-            new ap26.league.RandomPlayer(color),
-            new ap26.league.RandomPlayer(color),
-            new ap26.league.RandomPlayer(color),
+            // new ap26.league.RandomPlayer(color),
+            // new ap26.league.RandomPlayer(color),
+            // new ap26.league.RandomPlayer(color),
 
             // 自チームの実装を追加 (例):
-            new p26x03.OurPlayer(color)
+            new p26x03.OurPlayer(color), new p26x04.OurPlayer(color),
           };
         };
 
