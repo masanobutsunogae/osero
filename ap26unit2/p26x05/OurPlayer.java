@@ -37,7 +37,7 @@ public class OurPlayer extends ap26.Player {
   record EvalResult(Move move, float score) {}
 
   // nps計算用
-  static final boolean ENABLE_NPS_COUNT = false;
+  static final boolean ENABLE_NPS_COUNT = true;
   AtomicLong nodeCount = new AtomicLong();
   double seconds;
 
