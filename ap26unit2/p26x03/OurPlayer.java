@@ -122,7 +122,7 @@ public class OurPlayer extends ap26.Player {
 
     // 探索は常に黒視点なので、ここでは黒の合法手を生成
     List<Move> moves = currentBoard.findLegalMoves(BLACK);
-    moves = order(moves);
+    moves = order(currentBoard, moves, BLACK, true);
 
     if (depth == 0) {
       // 各合法手に対して並列で探索
@@ -187,7 +187,7 @@ public class OurPlayer extends ap26.Player {
     }
 
     List<Move> moves = currentBoard.findLegalMoves(WHITE);
-    moves = order(moves);
+    moves = order(currentBoard, moves, WHITE, false);
 
     for (Move nextMove : moves) {
       Board nextBoard = currentBoard.placed(nextMove);
@@ -208,10 +208,21 @@ public class OurPlayer extends ap26.Player {
   }
 
   /** 探索する手順を並び替える。 同じ評価値の手が複数あったとき、毎回同じ手を選んで単調になるのを避ける。 */
-  List<Move> order(List<Move> moves) {
-    List<Move> shuffled = new ArrayList<>(moves);
-    Collections.shuffle(shuffled);
-    return shuffled;
+  List<Move> order(Board board, List<Move> moves, Color color, Boolean descending) {
+    List<Move> ordered = new ArrayList<>(moves);
+
+    ordered.sort((m1, m2) -> {
+      float v1 = eval.value(board.placed(m1.colored(color)));
+      float v2 = eval.value(board.placed(m2.colored(color)));
+
+      if(descending){
+        return Float.compare(v2, v1);
+      }else{
+        return Float.compare(v1, v2);
+      }
+    });
+
+    return ordered;
   }
 
   public long getNodeCount() {
