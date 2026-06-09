@@ -48,7 +48,7 @@ public class MyGame {
     // 先手
 
     // ゲーム数の修正はここで！
-    int games = 50;
+    int games = 5000;
     int win = 0;
     int lose = 0;
     int draw = 0;

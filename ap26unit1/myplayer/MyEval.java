@@ -69,15 +69,26 @@ public class MyEval {
    */
   public float value(Board board) {
     if (board.isEnd()) {
-      // 確実に勝てる手順を最優先するため、大きな係数で増幅。
       return 1_000_000 * board.score();
     }
 
-    // 全マスの (重み × 石の符号) を合計。
-    // Color.BLACK.getValue() = +1, WHITE = -1, NONE = 0 という規約に依存。
-    return (float) IntStream.range(0, LENGTH)
+    float position = (float) IntStream.range(0, LENGTH)
         .mapToDouble(k -> cellScore(board, k))
         .sum();
+
+    int blackLegal = board.findLegalMoves(ap26.Color.BLACK).size();
+    int whiteLegal = board.findLegalMoves(ap26.Color.WHITE).size();
+
+    int blackCount = board.count(ap26.Color.BLACK);
+    int whiteCount = board.count(ap26.Color.WHITE);
+
+    float w1 =  1.0f;
+    float w2 =  5.0f;
+    float w3 = -5.0f;
+    float w4 =  0.3f;
+    float w5 = -0.3f;
+
+    return (w1 * position + w2 * blackLegal + w3 * whiteLegal + w4 * blackCount + w5 * whiteCount);
   }
 
   /** 1 マス分の評価値。黒石なら +M[r][c]、白石なら -M[r][c]、空マスは 0。*/

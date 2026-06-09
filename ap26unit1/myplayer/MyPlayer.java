@@ -79,7 +79,7 @@ public class MyPlayer extends ap26.Player {
 
   /** デフォルトコンストラクタ。深さ 2 で構築。 */
   public MyPlayer(Color color) {
-    this(MY_NAME, color, new MyEval(), 6);
+    this(MY_NAME, color, new MyEval(), 2);
   }
 
   /** 全パラメータを明示するコンストラクタ。 */
