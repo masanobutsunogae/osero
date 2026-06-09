@@ -15,8 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * α-β 法で次の一手を決めるオセロプレイヤー。
  *
- * <p>ビットボード表現 ({@link OurBoard}) による高速な盤面操作と、
- * ルートノードでの並列探索 ({@link CompletableFuture}) を組み合わせている。
+ * <p>ビットボード表現 ({@link OurBoard}) による高速な盤面操作と、 ルートノードでの並列探索 ({@link CompletableFuture}) を組み合わせている。
  */
 public class OurPlayer extends ap26.Player {
 
@@ -44,7 +43,7 @@ public class OurPlayer extends ap26.Player {
 
   /** デフォルトコンストラクタ。深さ 6 で構築。 */
   public OurPlayer(Color color) {
-    this(MY_NAME, color, new MyEval(), 6);
+    this(MY_NAME, color, new MyEval(), 9);
   }
 
   /** 全パラメータを明示するコンストラクタ。 */
@@ -113,9 +112,7 @@ public class OurPlayer extends ap26.Player {
     return this.move;
   }
 
-  /**
-   * α-β 探索の max 側。ルート (depth == 0) では並列探索を行う。
-   */
+  /** α-β 探索の max 側。ルート (depth == 0) では並列探索を行う。 */
   float maxSearch(Board currentBoard, float alpha, float beta, int depth) {
     nodeCount.incrementAndGet();
 
@@ -181,9 +178,7 @@ public class OurPlayer extends ap26.Player {
     }
   }
 
-  /**
-   * α-β 探索の min 側。白（= 相手）の手を生成する。
-   */
+  /** α-β 探索の min 側。白（= 相手）の手を生成する。 */
   float minSearch(Board currentBoard, float alpha, float beta, int depth) {
     nodeCount.incrementAndGet();
 
@@ -212,10 +207,7 @@ public class OurPlayer extends ap26.Player {
     return currentBoard.isEnd() || depth > this.depthLimit;
   }
 
-  /**
-   * 探索する手順を並び替える。
-   * 同じ評価値の手が複数あったとき、毎回同じ手を選んで単調になるのを避ける。
-   */
+  /** 探索する手順を並び替える。 同じ評価値の手が複数あったとき、毎回同じ手を選んで単調になるのを避ける。 */
   List<Move> order(List<Move> moves) {
     List<Move> shuffled = new ArrayList<>(moves);
     Collections.shuffle(shuffled);
