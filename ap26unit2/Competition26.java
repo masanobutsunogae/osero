@@ -59,12 +59,13 @@ public class Competition26 {
             //            new p26x00.OurPlayer(color),
 
             // ベースライン
-            // new ap26.league.RandomPlayer(color),
-            // new ap26.league.RandomPlayer(color),
-            // new ap26.league.RandomPlayer(color),
+            new ap26.league.RandomPlayer(color),
+            new ap26.league.RandomPlayer(color),
+            new ap26.league.RandomPlayer(color),
 
             // 自チームの実装を追加 (例):
-            new p26x03.OurPlayer(color), new p26x04.OurPlayer(color), new p26x05.OurPlayer(color), new p26x06.OurPlayer(color)
+            new p26x05.OurPlayer(color),
+            new p26x07.OurPlayer(color)
           };
         };
 

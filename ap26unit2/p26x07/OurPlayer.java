@@ -42,7 +42,7 @@ public class OurPlayer extends ap26.Player {
 
   /** デフォルトコンストラクタ。深さ 6 で構築。 */
   public OurPlayer(Color color) {
-    this(MY_NAME, color, new MyEval(), 9);
+    this(MY_NAME, color, new MyEval(), 13);
   }
 
   /** 全パラメータを明示するコンストラクタ。 */
@@ -208,21 +208,16 @@ public class OurPlayer extends ap26.Player {
 
   /** 探索する手順を並び替える。 同じ評価値の手が複数あったとき、毎回同じ手を選んで単調になるのを避ける。 */
   List<Move> order(Board board, List<Move> moves, Color color, Boolean descending) {
-    record MoveWithScore(Move move, float score) {}
+    float sign = (color == BLACK) ? 1f : -1f;
 
     return moves.stream()
-        .map(
-            m -> {
-              if (m.isPass()) return new MoveWithScore(m, 0f);
-              return new MoveWithScore(
-                  m, MyEval.M[m.getRow()][m.getCol()] * (color == BLACK ? 1f : -1f));
-            })
         .sorted(
-            (a, b) ->
-                descending
-                    ? Float.compare(b.score(), a.score())
-                    : Float.compare(a.score(), b.score()))
-        .map(MoveWithScore::move)
+            (a, b) -> {
+              float scoreA = a.isPass() ? 0f : MyEval.M[a.getRow()][a.getCol()] * sign;
+              float scoreB = b.isPass() ? 0f : MyEval.M[b.getRow()][b.getCol()] * sign;
+
+              return descending ? Float.compare(scoreB, scoreA) : Float.compare(scoreA, scoreB);
+            })
         .toList();
   }
 
