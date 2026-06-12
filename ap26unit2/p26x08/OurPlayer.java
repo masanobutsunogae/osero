@@ -1,4 +1,4 @@
-package p26x07;
+package p26x08;
 
 import static ap26.Color.BLACK;
 import static ap26.Color.WHITE;
@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OurPlayer extends ap26.Player {
 
   /** プレイヤー名（リーグ戦で識別用、ASCII 4文字）。 */
-  static final String MY_NAME = "FSOR"; // faster order
+  static final String MY_NAME = "INAL"; // initialAlpha
 
   /** 評価関数。 */
   MyEval eval;
@@ -42,7 +42,7 @@ public class OurPlayer extends ap26.Player {
 
   /** デフォルトコンストラクタ。深さ 6 で構築。 */
   public OurPlayer(Color color) {
-    this(MY_NAME, color, new MyEval(), 9);
+    this(MY_NAME, color, new MyEval(), 13);
   }
 
   /** 全パラメータを明示するコンストラクタ。 */
@@ -124,9 +124,26 @@ public class OurPlayer extends ap26.Player {
     moves = order(currentBoard, moves, BLACK, true);
 
     if (depth == 0) {
+      // 一番最初(有力な)てを探索してalphaを求めとく
+      Move firstMove = moves.get(0);
+      Board firstBoard = currentBoard.clone().placed(firstMove);
+      EvalResult bestResult =
+          new EvalResult(
+              firstMove,
+              minSearch(firstBoard, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, depth + 1));
+
+      // もし合法手が1個しかなかったらここで終わり
+      if (moves.size() == 1) {
+        this.move = bestResult.move();
+        return bestResult.score();
+      }
+
+      // firstMoveの評価値をalphaとして使う
+      float initialAlpha = bestResult.score();
+
       // 各合法手に対して並列で探索
       List<CompletableFuture<EvalResult>> futures =
-          moves.stream()
+          moves.subList(1, moves.size()).stream()
               .map(
                   nextMove ->
                       CompletableFuture.supplyAsync(
@@ -134,10 +151,7 @@ public class OurPlayer extends ap26.Player {
                             Board nextBoard = currentBoard.clone().placed(nextMove);
                             float childValue =
                                 minSearch(
-                                    nextBoard,
-                                    Float.NEGATIVE_INFINITY,
-                                    Float.POSITIVE_INFINITY,
-                                    depth + 1);
+                                    nextBoard, initialAlpha, Float.POSITIVE_INFINITY, depth + 1);
                             return new EvalResult(nextMove, childValue);
                           }))
               .toList();
@@ -145,10 +159,11 @@ public class OurPlayer extends ap26.Player {
       // 全部が終わるのを待つ
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-      // 結果からscoreが最大のものを見つける
-      EvalResult bestResult =
-          futures.stream()
-              .map(CompletableFuture::join)
+      // 結果+firstMoveからscoreが最大のものを見つける
+      bestResult =
+          java.util.stream.Stream.concat(
+                  java.util.stream.Stream.of(bestResult),
+                  futures.stream().map(CompletableFuture::join))
               .max((r1, r2) -> Float.compare(r1.score(), r2.score()))
               .orElseThrow();
 
