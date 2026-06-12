@@ -3,7 +3,7 @@ import static ap26.Color.WHITE;
 
 import ap26.*;
 import ap26.league.*;
-import p26x04.*;
+import p26x05.*;
 
 public class calNps {
   public static void main(String args[]) {

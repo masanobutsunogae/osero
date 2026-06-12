@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OurPlayer extends ap26.Player {
 
   /** プレイヤー名（リーグ戦で識別用、ASCII 4文字）。 */
-  static final String MY_NAME = "NWEV";
+  static final String MY_NAME = "NWEV"; // New Eval
 
   /** 評価関数。 */
   MyEval eval;

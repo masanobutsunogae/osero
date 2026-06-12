@@ -1,4 +1,4 @@
-package p26x05;
+package p26x07;
 
 import static ap26.Color.BLACK;
 import static ap26.Color.WHITE;
@@ -6,7 +6,6 @@ import static ap26.Color.WHITE;
 import ap26.Board;
 import ap26.Color;
 import ap26.Move;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -19,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OurPlayer extends ap26.Player {
 
   /** プレイヤー名（リーグ戦で識別用、ASCII 4文字）。 */
-  static final String MY_NAME = "EFOR"; // Efficient Ordering
+  static final String MY_NAME = "pl07";
 
   /** 評価関数。 */
   MyEval eval;
@@ -209,21 +208,22 @@ public class OurPlayer extends ap26.Player {
 
   /** 探索する手順を並び替える。 同じ評価値の手が複数あったとき、毎回同じ手を選んで単調になるのを避ける。 */
   List<Move> order(Board board, List<Move> moves, Color color, Boolean descending) {
-    List<Move> ordered = new ArrayList<>(moves);
+    record MoveWithScore(Move move, float score) {}
 
-    ordered.sort(
-        (m1, m2) -> {
-          float v1 = eval.value(board.placed(m1.colored(color)));
-          float v2 = eval.value(board.placed(m2.colored(color)));
-
-          if (descending) {
-            return Float.compare(v2, v1);
-          } else {
-            return Float.compare(v1, v2);
-          }
-        });
-
-    return ordered;
+    return moves.stream()
+        .map(
+            m -> {
+              if (m.isPass()) return new MoveWithScore(m, 0f);
+              return new MoveWithScore(
+                  m, MyEval.M[m.getRow()][m.getCol()] * (color == BLACK ? 1f : -1f));
+            })
+        .sorted(
+            (a, b) ->
+                descending
+                    ? Float.compare(b.score(), a.score())
+                    : Float.compare(a.score(), b.score()))
+        .map(MoveWithScore::move)
+        .toList();
   }
 
   public long getNodeCount() {
