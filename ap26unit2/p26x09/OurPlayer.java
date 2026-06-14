@@ -1,4 +1,4 @@
-package p26x08;
+package p26x09;
 
 import static ap26.Color.BLACK;
 import static ap26.Color.WHITE;
@@ -8,6 +8,7 @@ import ap26.Color;
 import ap26.Move;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -18,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OurPlayer extends ap26.Player {
 
   /** プレイヤー名（リーグ戦で識別用、ASCII 4文字）。 */
-  static final String MY_NAME = "INAL"; // initialAlpha
+  static final String MY_NAME = "pl09";
 
   /** 評価関数。 */
   MyEval eval;
@@ -39,6 +40,12 @@ public class OurPlayer extends ap26.Player {
   static final boolean ENABLE_NPS_COUNT = true;
   AtomicLong nodeCount = new AtomicLong();
   double seconds;
+
+  // スレッド数を決めるプール
+  private static final int REQUESTED_THREADS = 7;
+  private static final int SEARCH_THREADS =
+      Math.max(1, Math.min(REQUESTED_THREADS, Runtime.getRuntime().availableProcessors()));
+  private static final ForkJoinPool SEARCH_POOL = new ForkJoinPool(SEARCH_THREADS);
 
   /** デフォルトコンストラクタ。深さ 6 で構築。 */
   public OurPlayer(Color color) {
@@ -153,7 +160,8 @@ public class OurPlayer extends ap26.Player {
                                 minSearch(
                                     nextBoard, initialAlpha, Float.POSITIVE_INFINITY, depth + 1);
                             return new EvalResult(nextMove, childValue);
-                          }))
+                          },
+                          SEARCH_POOL))
               .toList();
 
       // 全部が終わるのを待つ
