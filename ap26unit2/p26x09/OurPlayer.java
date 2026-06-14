@@ -211,17 +211,57 @@ public class OurPlayer extends ap26.Player {
     List<Move> moves = currentBoard.findLegalMoves(WHITE);
     moves = order(currentBoard, moves, WHITE, false);
 
-    for (Move nextMove : moves) {
-      Board nextBoard = currentBoard.placed(nextMove);
-      float childValue = maxSearch(nextBoard, alpha, beta, depth + 1);
-      beta = Math.min(beta, childValue);
+    if (depth == 1) {
+      Move firstMove = moves.get(0);
+      Board firstBoard = currentBoard.clone().placed(firstMove);
+      EvalResult worstResult =
+          new EvalResult(
+              firstMove, minSearch(firstBoard, alpha, Float.POSITIVE_INFINITY, depth + 1));
 
-      if (alpha >= beta) {
-        break;
+      if (moves.size() == 1) {
+        this.move = worstResult.move();
+        return worstResult.score();
       }
-    }
 
-    return beta;
+      float initialBeta = worstResult.score();
+
+      List<CompletableFuture<EvalResult>> futures =
+          moves.subList(1, moves.size()).stream()
+              .map(
+                  nextMove ->
+                      CompletableFuture.supplyAsync(
+                          () -> {
+                            Board nextBoard = currentBoard.clone().placed(nextMove);
+                            float childValue = minSearch(nextBoard, alpha, initialBeta, depth + 1);
+                            return new EvalResult(nextMove, childValue);
+                          },
+                          SEARCH_POOL))
+              .toList();
+
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+      worstResult =
+          java.util.stream.Stream.concat(
+                  java.util.stream.Stream.of(worstResult),
+                  futures.stream().map(CompletableFuture::join))
+              .max((r1, r2) -> Float.compare(r1.score(), r2.score()))
+              .orElseThrow();
+
+      this.move = worstResult.move();
+      return worstResult.score();
+    } else {
+      for (Move nextMove : moves) {
+        Board nextBoard = currentBoard.placed(nextMove);
+        float childValue = maxSearch(nextBoard, alpha, beta, depth + 1);
+        beta = Math.min(beta, childValue);
+
+        if (alpha >= beta) {
+          break;
+        }
+      }
+
+      return beta;
+    }
   }
 
   /** 探索打ち切り判定。 */
