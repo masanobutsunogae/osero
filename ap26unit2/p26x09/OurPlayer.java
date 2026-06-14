@@ -42,14 +42,14 @@ public class OurPlayer extends ap26.Player {
   double seconds;
 
   // スレッド数を決めるプール
-  private static final int REQUESTED_THREADS = 7;
+  private static final int REQUESTED_THREADS = 128;
   private static final int SEARCH_THREADS =
       Math.max(1, Math.min(REQUESTED_THREADS, Runtime.getRuntime().availableProcessors()));
   private static final ForkJoinPool SEARCH_POOL = new ForkJoinPool(SEARCH_THREADS);
 
   /** デフォルトコンストラクタ。深さ 6 で構築。 */
   public OurPlayer(Color color) {
-    this(MY_NAME, color, new MyEval(), 9);
+    this(MY_NAME, color, new MyEval(), 13);
   }
 
   /** 全パラメータを明示するコンストラクタ。 */
@@ -214,41 +214,32 @@ public class OurPlayer extends ap26.Player {
     if (depth == 1) {
       Move firstMove = moves.get(0);
       Board firstBoard = currentBoard.clone().placed(firstMove);
-      EvalResult worstResult =
-          new EvalResult(
-              firstMove, minSearch(firstBoard, alpha, Float.POSITIVE_INFINITY, depth + 1));
+      float initialBeta = maxSearch(firstBoard, alpha, Float.POSITIVE_INFINITY, depth + 1);
 
-      if (moves.size() == 1) {
-        this.move = worstResult.move();
-        return worstResult.score();
-      }
+      if (moves.size() == 1) return initialBeta;
 
-      float initialBeta = worstResult.score();
+      final float capturedAlpha = alpha;
+      final float capturedBeta = initialBeta;
 
-      List<CompletableFuture<EvalResult>> futures =
+      List<CompletableFuture<Float>> futures =
           moves.subList(1, moves.size()).stream()
               .map(
                   nextMove ->
                       CompletableFuture.supplyAsync(
                           () -> {
                             Board nextBoard = currentBoard.clone().placed(nextMove);
-                            float childValue = minSearch(nextBoard, alpha, initialBeta, depth + 1);
-                            return new EvalResult(nextMove, childValue);
+                            return maxSearch(nextBoard, capturedAlpha, capturedBeta, depth + 1);
                           },
                           SEARCH_POOL))
               .toList();
 
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-      worstResult =
-          java.util.stream.Stream.concat(
-                  java.util.stream.Stream.of(worstResult),
-                  futures.stream().map(CompletableFuture::join))
-              .max((r1, r2) -> Float.compare(r1.score(), r2.score()))
-              .orElseThrow();
-
-      this.move = worstResult.move();
-      return worstResult.score();
+      float result = initialBeta;
+      for (var f : futures) {
+        result = Math.min(result, f.join());
+      }
+      return result;
     } else {
       for (Move nextMove : moves) {
         Board nextBoard = currentBoard.placed(nextMove);
