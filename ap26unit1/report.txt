@@ -24,6 +24,10 @@ clone()を作り、そのコピーに対して操作を行っている。簡単�
 しかし、このような原本情報への直接的な操作を行ってしまうと、a-b探索において元の状態へ戻るという過程が
 非常に難しくなってしまう。なので、わざわざcloneを作って以前の盤面を保存する構造をとっていることがわかった。
 
+MyPlayerで必ず黒視点にしてから探索している
+
+MoveクラスtoStringListの
+return moves.stream().map(k -> toIndexString(k)).toList();
 
 
 課題1b：人間が対戦に参加するためのクラスHumanPlayer を実装せよ。ファイル名をHumanPlayer.java とす
